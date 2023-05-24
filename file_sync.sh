@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Log file path
+log_file="file_sync.log"
+
+# Function to log messages
+log_message() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S"): $1" >> "$log_file"
+}
+
 # Function to copy new files by extension pattern
 copy_new_files() {
     source_dir="$1"
@@ -8,15 +16,17 @@ copy_new_files() {
 
     # Check if source directory exists and is readable
     if [ ! -d "$source_dir" ] || [ ! -r "$source_dir" ]; then
-        echo "Source directory does not exist or is not readable: $source_dir"
+        log_message "Source directory does not exist or is not readable: $source_dir"
         return 1
     fi
 
     # Check if destination directory exists and is writable
     if [ ! -d "$destination_dir" ] || [ ! -w "$destination_dir" ]; then
-        echo "Destination directory does not exist or is not writable: $destination_dir"
+        log_message "Destination directory does not exist or is not writable: $destination_dir"
         return 1
     fi
+
+    log_message "Start copying"
 
     # Copy new files with the specified extension pattern
     copied_files=0
@@ -27,7 +37,7 @@ copy_new_files() {
         destination_file="$destination_dir/$filename"
         if [[ ! -f "$destination_file" ]]; then
             cp "$file" "$destination_dir"
-            echo "Copied: $filename"
+            log_message "Copied: $filename"
             ((copied_files++))
         else
             source_file_size=$(stat -c%s "$file")
@@ -37,24 +47,25 @@ copy_new_files() {
 
             if [[ $source_file_size -ne $destination_file_size ]] || [[ $source_file_date -gt $destination_file_date ]]; then
                 cp "$file" "$destination_dir"
-                echo "Copied: $filename (size or date mismatch)"
+                log_message "Copied: $filename (size or date mismatch)"
                 ((copied_files++))
             else
-                echo "Skipped: $filename (already exists in destination directory)"
+                log_message "Skipped: $filename (already exists in destination directory)"
                 ((skipped_files++))
             fi
         fi
     done
 
-    echo "Copying complete"
-    echo "Copied files: $copied_files"
-    echo "Skipped files: $skipped_files"
+    log_message "Copying complete"
+    log_message "Copied files: $copied_files"
+    log_message "Skipped files: $skipped_files"
     return 0
 }
 
 # Check if all command-line arguments are provided
 if [ $# -ne 3 ]; then
    echo "Usage: ./script.sh <source_directory> <destination_directory> <extension_pattern>"
+   log_message "Wrong usage detected, please folow this as example './script.sh <source_directory> <destination_directory> <extension_pattern>'"
    exit 1
 fi
 
